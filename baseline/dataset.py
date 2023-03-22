@@ -3,10 +3,10 @@ import random
 import logging
 from collections import defaultdict
 from itertools import chain
-
+import pdb
 import torch
 from tqdm import tqdm
-
+import pdb 
 from .utils.data import (
     pad_ids, truncate_sequences
 )
@@ -185,7 +185,7 @@ class BaseDataset(torch.utils.data.Dataset):
                 "history": truncated_history,
                 "knowledge": used_knowledge,
                 "knowledge_keys": knowledge_keys,
-                "candidates": knowledge_candidates,
+                "candidates": knowledge_candidates, # 괜찮은것들!
                 "response": tokenized_gt_resp,
                 "response_text": gt_resp,
                 "label": label,
@@ -207,7 +207,7 @@ class KnowledgeTurnDetectionDataset(BaseDataset):
     def build_input_from_segments(self, history):
         """ Build a sequence of input from history """
         instance = {}
-
+        
         sequence = [[self.cls]] + history[:-1] + [history[-1]]
         sequence_with_speaker = [
             [self.speaker1 if (len(sequence) - i) % 2 == 0 else self.speaker2] + s
@@ -289,17 +289,15 @@ class KnowledgeSelectionDataset(BaseDataset):
             else:  # although we have already checked for this, still adding this here to be sure
                 raise ValueError(
                     "negative_sample_method must be all, mix, or oracle, got %s" % self.args.negative_sample_method)
-
         candidate_keys = candidates
         this_inst["candidate_keys"] = candidate_keys
         candidates = [self.snippets[cand_key]['token_ids'] for cand_key in candidates]
-
         if self.split_type == "train":
             candidates = self._shrink_label_cands(example["knowledge"], candidates)
 
         label_idx = [candidates.index(knowledge) for knowledge in example["knowledge"]]
 
-        this_inst["label_idx"] = label_idx
+        this_inst["label_idx"] = label_idx # 정답의 위치
         for cand in candidates:
             instance, _ = self.build_input_from_segments(
                 cand,
@@ -307,7 +305,6 @@ class KnowledgeSelectionDataset(BaseDataset):
             )
             this_inst["input_ids"].append(instance["input_ids"])
             this_inst["token_type_ids"].append(instance["token_type_ids"])
-
         return this_inst
 
     def build_input_from_segments(self, knowledge, history):
